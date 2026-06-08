@@ -41,10 +41,10 @@ export default function Navbar() {
           <Link to="/internal-feedback" className={`transition ${isActive('/internal-feedback') ? 'text-green-600 font-bold border-b-2 border-green-600' : 'text-gray-600 hover:text-green-600'}`}>
             🏢 የውስጥ ቅጽ
           </Link>
-          <Link to="/internal-dashboard" className={`transition ${isActive('/internal-dashboard') ? 'text-green-600 font-bold border-b-2 border-green-600' : 'text-gray-600 hover:text-green-600'}`}>
-            📊 የውስጥ ዳሽቦርድ
-          </Link>
-          
+         
+          <Link to="/unified-dashboard" className={`transition ${isActive('/unified-dashboard') ? 'text-green-600 font-bold border-b-2 border-green-600' : 'text-gray-600 hover:text-green-600'}`}>
+  📊 የተዋሃደ ዳሽቦርድ
+</Link>
           {user ? (
             <>
               <span className="text-sm text-gray-600">{user.username}</span>

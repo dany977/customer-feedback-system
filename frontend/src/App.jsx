@@ -9,6 +9,8 @@ import About from './pages/About'
 import Navbar from './components/Navbar'
 import InternalFeedback from './pages/InternalFeedback'
 import InternalDashboard from './pages/InternalDashboard'
+import UnifiedDashboard from './pages/UnifiedDashboard'
+
 
 function AppRoutes() {
   return (
@@ -18,6 +20,7 @@ function AppRoutes() {
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
         <Route path="/feedback" element={<FeedbackForm />} />
+        <Route path="/unified-dashboard" element={<UnifiedDashboard />} />
         <Route path="/internal-feedback" element={<InternalFeedback />} />
         <Route path="/internal-dashboard" element={<InternalDashboard />} />
         <Route path="/login" element={<Login />} />
