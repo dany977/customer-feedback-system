@@ -13,7 +13,6 @@ export default function Login() {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      console.log('User already logged in, redirecting to dashboard')
       navigate('/dashboard')
     }
   }, [user, navigate])
@@ -23,12 +22,9 @@ export default function Login() {
     setLoading(true)
     setError('')
     
-    console.log('Logging in with:', username)
     const result = await login(username, password)
-    console.log('Login result:', result)
     
     if (result.success) {
-      console.log('Login successful, redirecting...')
       navigate('/dashboard')
     } else {
       setError(result.error || 'የተጠቃሚ ስም ወይም የይለፍ ቃል ተሳስቷል')
@@ -40,7 +36,18 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="text-5xl mb-3">🌾</div>
+          {/* Logo */}
+          <img 
+            src="/logo.jpg" 
+            alt="የግብርና ሚኒስቴር" 
+            className="h-16 w-auto mx-auto mb-4"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'block';
+            }}
+          />
+          <div className="text-5xl mb-3" style={{ display: 'none' }}>🌾</div>
           <h1 className="text-2xl font-bold text-gray-800">የግብርና ሚኒስቴር</h1>
           <p className="text-gray-500 mt-1">የአስተዳዳሪ መግቢያ</p>
         </div>
@@ -86,7 +93,7 @@ export default function Login() {
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-500">
-          <p>ለሙከራ: danii / የይለፍ ቃልዎ</p>
+         
         </div>
       </div>
     </div>

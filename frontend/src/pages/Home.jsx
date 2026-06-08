@@ -4,9 +4,18 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100">
       {/* Hero Section */}
-      <div className="relative h-64 sm:h-96 bg-green-700">
+      <div className="relative h-64 sm:h-96 bg-gray ">
         <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
           <div className="text-center text-white px-4">
+            <img 
+              src="/logo.png" 
+              alt="የግብርና ሚኒስቴር" 
+              className="h-20 w-auto mx-auto mb-4"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.style.display = 'none';
+              }}
+            />
             <h1 className="text-3xl sm:text-5xl font-bold mb-3">የግብርና ሚኒስቴር</h1>
             <p className="text-sm sm:text-lg">ጥራት ያለው አገልግሎት ለሁሉም</p>
           </div>
@@ -31,7 +40,15 @@ export default function Home() {
             📝 ወደ ግብረመልስ ቅጽ ይሂዱ
           </Link>
         </div>
-
+<img 
+  src="/logo.jpg" 
+  alt="የግብርና ሚኒስቴር" 
+  className="h-20 w-auto mx-auto mb-4"
+  onError={(e) => {
+    e.target.onerror = null;
+    e.target.style.display = 'none';
+  }}
+/>
         {/* Features Section */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mt-10 sm:mt-16">
           <div className="bg-white rounded-xl shadow-md p-4 text-center">

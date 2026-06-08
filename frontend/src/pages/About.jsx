@@ -42,9 +42,7 @@ export default function About() {
         </div>
 
         <div className="text-center mt-8">
-          <Link to="/" className="text-green-600 hover:text-green-800">
-            ← ወደ ዋና ገጽ ተመለስ
-          </Link>
+          <Link to="/" className="text-green-600 hover:text-green-800">← ወደ ዋና ገጽ ተመለስ</Link>
         </div>
       </div>
     </div>

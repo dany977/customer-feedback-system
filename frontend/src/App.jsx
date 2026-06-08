@@ -8,6 +8,7 @@ import Home from './pages/Home'
 import About from './pages/About'
 import Navbar from './components/Navbar'
 import InternalFeedback from './pages/InternalFeedback'
+import InternalDashboard from './pages/InternalDashboard'
 
 function AppRoutes() {
   return (
@@ -18,6 +19,7 @@ function AppRoutes() {
         <Route path="/about" element={<About />} />
         <Route path="/feedback" element={<FeedbackForm />} />
         <Route path="/internal-feedback" element={<InternalFeedback />} />
+        <Route path="/internal-dashboard" element={<InternalDashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/qr-generator" element={<QRGenerator />} />
