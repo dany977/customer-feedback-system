@@ -1,0 +1,72 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  # PostgreSQL Database (optional - for production)
+  db:
+    image: postgres:15-alpine
+    container_name: feedback_db
+    restart: always
+    environment:
+      POSTGRES_DB: feedback_db
+      POSTGRES_USER: feedback_user
+      POSTGRES_PASSWORD: feedback_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - feedback_network
+    profiles:
+      - production
+      - full
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: feedback_backend
+    restart: always
+    environment:
+      DEBUG: 'False'
+      DOCKER_ENV: '1'
+      DB_ENGINE: sqlite
+      ALLOWED_HOSTS: 'localhost,127.0.0.1,backend'
+    volumes:
+      - ./backend:/app
+      - backend_static:/app/static
+      - backend_media:/app/media
+    ports:
+      - "8000:8000"
+    networks:
+      - feedback_network
+    profiles:
+      - production
+      - full
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: feedback_frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - feedback_network
+    profiles:
+      - production
+      - full
+
+networks:
+  feedback_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  backend_static:
+  backend_media:
