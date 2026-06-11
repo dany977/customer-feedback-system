@@ -42,9 +42,9 @@ export default function Navbar() {
             🏢 የውስጥ ቅጽ
           </Link>
          
-          <Link to="/unified-dashboard" className={`transition ${isActive('/unified-dashboard') ? 'text-green-600 font-bold border-b-2 border-green-600' : 'text-gray-600 hover:text-green-600'}`}>
-  📊 የተዋሃደ ዳሽቦርድ
-</Link>
+          {/* <Link to="/unified-dashboard" className={`transition ${isActive('/unified-dashboard') ? 'text-green-600 font-bold border-b-2 border-green-600' : 'text-gray-600 hover:text-green-600'}`}> */}
+  {/* 📊 የተዋሃደ ዳሽቦርድ */}
+{/* </Link> */}
           {user ? (
             <>
               <span className="text-sm text-gray-600">{user.username}</span>
@@ -54,7 +54,6 @@ export default function Navbar() {
             <Link to="/login" className="text-gray-600 hover:text-green-600">🔐 መግቢያ</Link>
           )}
         </div>
-
         {/* Mobile Menu Button (top right) */}
         <div className="md:hidden absolute right-4 top-4">
           <button className="text-gray-600 p-2">

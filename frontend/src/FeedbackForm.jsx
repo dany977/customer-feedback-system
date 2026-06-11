@@ -130,18 +130,22 @@ export default function FeedbackForm() {
             { v: 4, l: 'እስማማለሁ' },
             { v: 5, l: 'በጣም እስማማለሁ' }
           ].map(opt => (
-            <button
-              key={opt.v}
-              type="button"
-              onClick={() => handleRating(name, opt.v)}
-              className={`flex-1 px-2 py-2 rounded text-sm transition ${
-                formData[name] === opt.v 
-                  ? 'bg-green-600 text-white' 
-                  : 'bg-white border border-gray-300 hover:bg-green-100'
-              }`}
-            >
-              {opt.v} - {opt.l}
-            </button>
+           <button
+  key={opt.v}
+  type="button"
+  onClick={(e) => {
+    e.preventDefault();      // ✅ Prevents any default behavior
+    e.stopPropagation();     // ✅ Stops event from bubbling up
+    handleRating(name, opt.v);
+  }}
+  className={`flex-1 px-2 py-2 rounded text-sm transition ${
+    formData[name] === opt.v 
+      ? 'bg-green-600 text-white' 
+      : 'bg-white border border-gray-300 hover:bg-green-100'
+  }`}
+>
+  {opt.v} - {opt.l}
+</button>
           ))}
         </div>
       </div>
@@ -184,7 +188,7 @@ export default function FeedbackForm() {
           ይህ መጠይቅ በግብርና ሚኒስቴር የሚሰጡ አገልግሎቶችን ጥራት እና ውጤታማነት ለማሻሻል ግብረ-መልስ ለማሰብሰብ ተዘጋጅቷል።
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           {/* Section 1: Personal Information */}
           <div className="mb-6">
             <h2 className="text-base sm:text-xl font-bold text-green-800 mb-3 border-b pb-2">ክፍል 1: የአገልግሎት ተጠቃሚ መረጃ</h2>
