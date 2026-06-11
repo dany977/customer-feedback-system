@@ -7,50 +7,50 @@ export default function InternalFeedback() {
   const [activeTab, setActiveTab] = useState('personal')
 
   const [formData, setFormData] = useState({
-    // Personal Information
-    full_name: '',
-    employee_id: '',
-    department: '',
-    position: '',
-    years_of_service: '',
-    
-    // Asset Management
-    asset_liked: '',
-    asset_suggestions: '',
-    
-    // Facility (ግቢ ውበት እና ህንጻ)
-    cleanliness_aesthetics: 3,
-    external_appearance: 3,
-    internal_cleanliness: 3,
-    facility_condition: 3,
-    space_utilization: 3,
-    security_service: 3,
-    light_air_quality: 3,
-    maintenance_care: 3,
-    facility_suggestions: '',
-    
-    // Logistics
-    logistics_service_speed: 3,
-    vehicle_readiness: 3,
-    travel_time: 3,
-    driver_conduct: 3,
-    travel_safety: 3,
-    logistics_suggestions: '',
-    
-    // Vehicle Maintenance
-    vehicle_registration: '',
-    vehicle_type: '',
-    maintenance_quality: 3,
-    service_speed: 3,
-    staff_behavior: 3,
-    liked_service: '',
-    improvement_needs: '',
-    
-    // Overall
-    overall_satisfaction: 3,
-    general_comments: '',
-    contact: ''
-  })
+  // Personal information (keep as empty strings)
+  full_name: '',
+  employee_id: '',
+  department: '',
+  position: '',
+  years_of_service: '',
+  
+  // Asset Management
+  asset_liked: '',
+  asset_suggestions: '',
+  
+  // Facility (change all 3 to null)
+  cleanliness_aesthetics: null,
+  external_appearance: null,
+  internal_cleanliness: null,
+  facility_condition: null,
+  space_utilization: null,
+  security_service: null,
+  light_air_quality: null,
+  maintenance_care: null,
+  facility_suggestions: '',
+  
+  // Logistics (change all 3 to null)
+  logistics_service_speed: null,
+  vehicle_readiness: null,
+  travel_time: null,
+  driver_conduct: null,
+  travel_safety: null,
+  logistics_suggestions: '',
+  
+  // Vehicle Maintenance
+  vehicle_registration: '',
+  vehicle_type: '',
+  maintenance_quality: null,
+  service_speed: null,
+  staff_behavior: null,
+  liked_service: '',
+  improvement_needs: '',
+  
+  // Overall
+  overall_satisfaction: null,
+  general_comments: '',
+  contact: ''
+});
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -138,25 +138,29 @@ export default function InternalFeedback() {
     setLoading(false)
   }
 
-  const RatingButtons = ({ name, label }) => (
-    <div className="mb-4">
-      <label className="block font-bold text-sm mb-2">{label}</label>
-      <div className="flex gap-2">
-        {[1, 2, 3, 4, 5].map(v => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => handleRating(name, v)}
-            className={`flex-1 py-2 rounded transition ${
-              formData[name] === v ? 'bg-green-600 text-white' : 'bg-gray-200 hover:bg-gray-300'
-            }`}
-          >
-            {v}
-          </button>
-        ))}
-      </div>
+const RatingButtons = ({ name, label }) => (
+  <div className="mb-4">
+    <label className="block font-bold text-sm text-gray-700 mb-2">{label}</label>
+    <div className="flex gap-2">
+      {[1, 2, 3, 4, 5].map(v => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => handleRating(name, v)}
+          className={`
+            flex-1 py-2 rounded-lg font-bold transition-all duration-200
+            ${formData[name] === v 
+              ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md scale-105' 
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow'
+            }
+          `}
+        >
+          {v}
+        </button>
+      ))}
     </div>
-  )
+  </div>
+);
 
   const tabs = [
     { id: 'personal', name: '👤 መረጃ', icon: '👤' },
@@ -207,8 +211,8 @@ export default function InternalFeedback() {
                 <h2 className="text-xl font-bold text-blue-800 mb-4">👤 መሰረታዊ መረጃ</h2>
                 <div className="space-y-4">
                   <div><label className="font-bold text-sm">ሙሉ ስም (አማራጭ)</label><input type="text" name="full_name" value={formData.full_name} onChange={handleChange} className="w-full p-2 border rounded" /></div>
-<div><label className="font-bold text-sm">የሰራተኛ መታወቂያ (አማራጭ)</label><input type="text" name="employee_id" value={formData.employee_id} onChange={handleChange} className="w-full p-2 border rounded" /></div>
-<div><label className="font-bold text-sm">ዲፓርትመንት (አማራጭ)</label><input type="text" name="department" value={formData.department} onChange={handleChange} className="w-full p-2 border rounded" /></div>
+                  <div><label className="font-bold text-sm">የሰራተኛ መታወቂያ (አማራጭ)</label><input type="text" name="employee_id" value={formData.employee_id} onChange={handleChange} className="w-full p-2 border rounded" /></div>
+                  <div><label className="font-bold text-sm">ዲፓርትመንት (አማራጭ)</label><input type="text" name="department" value={formData.department} onChange={handleChange} className="w-full p-2 border rounded" /></div>
                 </div>
               </div>
             )}

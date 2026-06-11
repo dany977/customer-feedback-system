@@ -1,109 +1,151 @@
 // frontend/src/pages/UnifiedDashboard.jsx
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { QRCodeSVG } from 'qrcode.react'
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
-  PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line,
-  AreaChart, Area
+  PieChart, Pie, Cell, ResponsiveContainer
 } from 'recharts'
 
 export default function UnifiedDashboard() {
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('overview')
+  const [qrSize, setQrSize] = useState(180)
   const [externalStats, setExternalStats] = useState(null)
   const [internalStats, setInternalStats] = useState(null)
   const [recentFeedback, setRecentFeedback] = useState([])
 
+  // Fetch all data on mount
   useEffect(() => {
+    const fetchAllData = async () => {
+      setLoading(true)
+      try {
+        // Fetch external stats
+        const extRes = await fetch('http://localhost:8000/api/dashboard/stats/')
+        if (extRes.ok) {
+          const extData = await extRes.json()
+          setExternalStats(extData)
+        } else {
+          // Fallback mock for development (optional)
+          setExternalStats({
+            total_feedback: 0,
+            average_satisfaction: 0,
+            satisfaction_distribution: { very_satisfied: 0, satisfied: 0, neutral: 0, dissatisfied: 0, very_dissatisfied: 0 },
+            sector_stats: []
+          })
+        }
+
+        // Fetch internal stats
+        const intRes = await fetch('http://localhost:8000/api/employee/stats/')
+        if (intRes.ok) {
+          const intData = await intRes.json()
+          setInternalStats(intData)
+        } else {
+          setInternalStats({
+            total_feedback: 0,
+            average_satisfaction: 0,
+            satisfaction_distribution: { very_satisfied: 0, satisfied: 0, neutral: 0, dissatisfied: 0, very_dissatisfied: 0 },
+            department_stats: []
+          })
+        }
+
+        // Fetch recent feedback from both endpoints
+        await fetchRecentFeedback()
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    const fetchRecentFeedback = async () => {
+      try {
+        // External feedback list
+        const extListRes = await fetch('http://localhost:8000/api/feedback/list/')
+        let externalItems = []
+        if (extListRes.ok) {
+          const data = await extListRes.json()
+          externalItems = data.map(item => ({
+            id: item.id,
+            type: 'ውጭ',
+            name: item.full_name || item.stakeholder_type || 'ያልተጠቀሰ',
+            rating: item.overall_satisfaction || 0,
+            date: item.created_at ? item.created_at.split('T')[0] : (item.service_date || '')
+          }))
+        }
+
+        // Internal feedback list
+        const intListRes = await fetch('http://localhost:8000/api/employee/list/')
+        let internalItems = []
+        if (intListRes.ok) {
+          const data = await intListRes.json()
+          internalItems = data.map(item => ({
+            id: item.id,
+            type: 'ውስጥ',
+            name: item.department || item.full_name || 'ሰራተኛ',
+            rating: item.overall_satisfaction || 0,
+            date: item.created_at ? item.created_at.split('T')[0] : ''
+          }))
+        }
+
+        // Combine, sort by date descending, take first 5
+        const combined = [...externalItems, ...internalItems]
+          .filter(item => item.date) // only those with a date
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
+          .slice(0, 5)
+
+        setRecentFeedback(combined)
+      } catch (err) {
+        console.error('Error fetching recent feedback:', err)
+        setRecentFeedback([])
+      }
+    }
+
     fetchAllData()
   }, [])
 
-  const fetchAllData = async () => {
-    setLoading(true)
-    try {
-      // Fetch external stats
-      const externalRes = await fetch('http://localhost:8000/api/dashboard/stats/')
-      if (externalRes.ok) {
-        const externalData = await externalRes.json()
-        setExternalStats(externalData)
-      } else {
-        // Mock data for external
-        setExternalStats({
-          total_feedback: 156,
-          average_satisfaction: 4.1,
-          satisfaction_distribution: {
-            very_satisfied: 78,
-            satisfied: 45,
-            neutral: 20,
-            dissatisfied: 8,
-            very_dissatisfied: 5
-          },
-          sector_stats: [
-            { sector: 'የሚኒስትር ጽ/ቤት', avg_rating: 4.3, count: 45 },
-            { sector: 'የእርሻና ሆርቲካልቸር', avg_rating: 4.0, count: 38 },
-            { sector: 'የእንስሳትና ዓሳ ልማት', avg_rating: 4.2, count: 32 },
-            { sector: 'የግብርና ኢንቨስትመንት', avg_rating: 3.8, count: 41 }
-          ]
-        })
-      }
+  // Prepare pie chart data (external satisfaction)
+  const satisfactionData = externalStats?.satisfaction_distribution ? [
+    { name: 'በጣም ረክተዋል', value: externalStats.satisfaction_distribution.very_satisfied, color: '#10b981' },
+    { name: 'ረክተዋል', value: externalStats.satisfaction_distribution.satisfied, color: '#34d399' },
+    { name: 'ገለልተኛ', value: externalStats.satisfaction_distribution.neutral, color: '#fbbf24' },
+    { name: 'አልረካሁም', value: externalStats.satisfaction_distribution.dissatisfied, color: '#f97316' },
+    { name: 'በጣም አልረካሁም', value: externalStats.satisfaction_distribution.very_dissatisfied, color: '#ef4444' }
+  ].filter(item => item.value > 0) : []
 
-      // Fetch internal stats
-      const internalRes = await fetch('http://localhost:8000/api/employee/stats/')
-      if (internalRes.ok) {
-        const internalData = await internalRes.json()
-        setInternalStats(internalData)
-      } else {
-        // Mock data for internal
-        setInternalStats({
-          total_feedback: 87,
-          average_satisfaction: 4.3,
-          satisfaction_distribution: {
-            very_satisfied: 42,
-            satisfied: 28,
-            neutral: 12,
-            dissatisfied: 4,
-            very_dissatisfied: 1
-          },
-          department_stats: [
-            { department: 'ICT', avg_rating: 4.6, count: 18 },
-            { department: 'Finance', avg_rating: 4.3, count: 15 },
-            { department: 'HR', avg_rating: 4.4, count: 12 },
-            { department: 'Procurement', avg_rating: 4.0, count: 20 },
-            { department: 'Logistics', avg_rating: 4.1, count: 14 },
-            { department: 'Maintenance', avg_rating: 4.2, count: 8 }
-          ]
-        })
-      }
+  // Prepare bar chart data (internal department satisfaction)
+  const departmentData = internalStats?.department_stats?.map(dept => ({
+    name: dept.department,
+    rating: dept.avg_rating,
+    count: dept.count
+  })) || []
 
-      // Mock recent feedback
-      setRecentFeedback([
-        { id: 1, type: 'ውጭ', name: 'አብይ ተመስገን', dept: 'የሚኒስትር ጽ/ቤት', rating: 5, date: '2024-01-15' },
-        { id: 2, type: 'ውስጥ', name: 'ሰራተኛ 101', dept: 'ICT', rating: 4, date: '2024-01-15' },
-        { id: 3, type: 'ውጭ', name: 'ሰላም አለሙ', dept: 'የእንስሳት ልማት', rating: 5, date: '2024-01-14' },
-        { id: 4, type: 'ውስጥ', name: 'ሰራተኛ 205', dept: 'Finance', rating: 3, date: '2024-01-14' },
-        { id: 5, type: 'ውጭ', name: 'ብርሃን ገብረ', dept: 'የእርሻ ልማት', rating: 4, date: '2024-01-13' }
-      ])
-    } catch (err) {
-      console.error('Error fetching data:', err)
-    } finally {
-      setLoading(false)
+  // Combined totals
+  const totalFeedback = (externalStats?.total_feedback || 0) + (internalStats?.total_feedback || 0)
+  const avgSatisfaction = ((externalStats?.average_satisfaction || 0) + (internalStats?.average_satisfaction || 0)) / 2
+
+  // QR code URL
+  const formUrl = 'http://localhost:5173/feedback'
+
+  const downloadQR = () => {
+    const svg = document.getElementById('unified-qr-code')
+    if (svg) {
+      const svgData = new XMLSerializer().serializeToString(svg)
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      const img = new Image()
+      img.onload = () => {
+        canvas.width = img.width
+        canvas.height = img.height
+        ctx.drawImage(img, 0, 0)
+        const pngFile = canvas.toDataURL('image/png')
+        const link = document.createElement('a')
+        link.download = 'qr_code_feedback.png'
+        link.href = pngFile
+        link.click()
+      }
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)))
     }
   }
-
-  // Prepare combined satisfaction data
-  const combinedSatisfaction = [
-    { name: 'ውጭ ደንበኞች', very_satisfied: externalStats?.satisfaction_distribution?.very_satisfied || 0, satisfied: externalStats?.satisfaction_distribution?.satisfied || 0, neutral: externalStats?.satisfaction_distribution?.neutral || 0 },
-    { name: 'ውስጥ ሰራተኞች', very_satisfied: internalStats?.satisfaction_distribution?.very_satisfied || 0, satisfied: internalStats?.satisfaction_distribution?.satisfied || 0, neutral: internalStats?.satisfaction_distribution?.neutral || 0 }
-  ]
-
-  const weeklyTrend = [
-    { day: 'ሰኞ', external: 4.2, internal: 4.5 },
-    { day: 'ማክሰ', external: 4.0, internal: 4.3 },
-    { day: 'ረቡዕ', external: 4.3, internal: 4.4 },
-    { day: 'ሐሙስ', external: 4.1, internal: 4.2 },
-    { day: 'አርብ', external: 4.4, internal: 4.6 },
-    { day: 'ቅዳሜ', external: 4.0, internal: 4.1 }
-  ]
 
   if (loading) {
     return (
@@ -120,25 +162,25 @@ export default function UnifiedDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
       <header className="bg-gradient-to-r from-green-700 to-blue-700 text-white shadow-lg sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 py-5">
+        <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <div className="bg-white/20 p-3 rounded-xl">
-                <span className="text-3xl">🌾</span>
+              <div className="bg-white/20 p-2 rounded-xl">
+                <span className="text-2xl">🌾</span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold">የግብርና ሚኒስቴር ዳሽቦርድ</h1>
-                <p className="text-green-100 text-sm mt-1">የውስጥ እና የውጭ አጠቃላይ እርካታ መረጃ</p>
+                <h1 className="text-xl font-bold">የተዋሃደ የአገልግሎት እርካታ ዳሽቦርድ</h1>
+                <p className="text-green-100 text-xs">የውጭ ደንበኞች እና የውስጥ ሰራተኞች አጠቃላይ እርካታ</p>
               </div>
             </div>
-            <div className="flex gap-3">
-              <Link to="/feedback" className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl transition text-sm">
+            <div className="flex gap-2">
+              <Link to="/feedback" className="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition text-sm">
                 📝 የውጭ ቅጽ
               </Link>
-              <Link to="/internal-feedback" className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl transition text-sm">
+              <Link to="/internal-feedback" className="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition text-sm">
                 🏢 የውስጥ ቅጽ
               </Link>
-              <Link to="/" className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl transition text-sm">
+              <Link to="/" className="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition text-sm">
                 🏠 ዋና ገጽ
               </Link>
             </div>
@@ -146,292 +188,217 @@ export default function UnifiedDashboard() {
         </div>
       </header>
 
-      {/* Tab Navigation */}
-      <div className="max-w-7xl mx-auto px-4 pt-6">
-        <div className="flex flex-wrap gap-2 border-b">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-6 py-3 rounded-t-lg transition flex items-center gap-2 font-medium ${activeTab === 'overview' ? 'bg-green-600 text-white shadow-lg' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-          >
-            <span>📊</span> አጠቃላይ እይታ
-          </button>
-          <button
-            onClick={() => setActiveTab('external')}
-            className={`px-6 py-3 rounded-t-lg transition flex items-center gap-2 font-medium ${activeTab === 'external' ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-          >
-            <span>🌍</span> የውጭ ደንበኞች
-          </button>
-          <button
-            onClick={() => setActiveTab('internal')}
-            className={`px-6 py-3 rounded-t-lg transition flex items-center gap-2 font-medium ${activeTab === 'internal' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-          >
-            <span>🏢</span> የውስጥ ሰራተኞች
-          </button>
-          <button
-            onClick={() => setActiveTab('comparison')}
-            className={`px-6 py-3 rounded-t-lg transition flex items-center gap-2 font-medium ${activeTab === 'comparison' ? 'bg-purple-600 text-white shadow-lg' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-          >
-            <span>⚖️</span> ንጽጽር
-          </button>
+      <main className="max-w-7xl mx-auto px-4 py-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-blue-500">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-gray-500 text-sm">ጠቅላላ ግብረመልስ</p>
+                <p className="text-2xl font-bold text-gray-800 mt-1">{totalFeedback}</p>
+              </div>
+              <div className="bg-blue-100 p-2 rounded-lg"><span className="text-xl">📊</span></div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-green-500">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-gray-500 text-sm">አማካይ እርካታ</p>
+                <p className="text-2xl font-bold text-gray-800 mt-1">{avgSatisfaction.toFixed(1)} / 5</p>
+              </div>
+              <div className="bg-green-100 p-2 rounded-lg"><span className="text-xl">⭐</span></div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-purple-500">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-gray-500 text-sm">የውጭ ግብረመልስ</p>
+                <p className="text-2xl font-bold text-gray-800 mt-1">{externalStats?.total_feedback || 0}</p>
+              </div>
+              <div className="bg-purple-100 p-2 rounded-lg"><span className="text-xl">🌍</span></div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-indigo-500">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-gray-500 text-sm">የውስጥ ግብረመልስ</p>
+                <p className="text-2xl font-bold text-gray-800 mt-1">{internalStats?.total_feedback || 0}</p>
+              </div>
+              <div className="bg-indigo-100 p-2 rounded-lg"><span className="text-xl">🏢</span></div>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Overview Tab */}
-        {activeTab === 'overview' && (
-          <>
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg p-6 text-white">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-blue-100 text-sm">ጠቅላላ ግብረመልስ</p>
-                    <p className="text-3xl font-bold mt-1">{(externalStats?.total_feedback || 0) + (internalStats?.total_feedback || 0)}</p>
-                  </div>
-                  <div className="bg-white/20 p-2 rounded-lg">📊</div>
-                </div>
-              </div>
-              <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg p-6 text-white">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-green-100 text-sm">አማካይ እርካታ</p>
-                    <p className="text-3xl font-bold mt-1">{(((externalStats?.average_satisfaction || 0) + (internalStats?.average_satisfaction || 0)) / 2).toFixed(1)} / 5</p>
-                  </div>
-                  <div className="bg-white/20 p-2 rounded-lg">⭐</div>
-                </div>
-              </div>
-              <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-6 text-white">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-purple-100 text-sm">የውጭ ግብረመልስ</p>
-                    <p className="text-3xl font-bold mt-1">{externalStats?.total_feedback || 0}</p>
-                  </div>
-                  <div className="bg-white/20 p-2 rounded-lg">🌍</div>
-                </div>
-              </div>
-              <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl shadow-lg p-6 text-white">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-indigo-100 text-sm">የውስጥ ግብረመልስ</p>
-                    <p className="text-3xl font-bold mt-1">{internalStats?.total_feedback || 0}</p>
-                  </div>
-                  <div className="bg-white/20 p-2 rounded-lg">🏢</div>
-                </div>
-              </div>
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Pie Chart */}
+          <div className="bg-white rounded-xl shadow-md p-4">
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="font-bold text-gray-800">🥧 የውጭ ደንበኞች እርካታ ስርጭት</h2>
+              <span className="text-xs text-gray-400">ከ{externalStats?.total_feedback || 0} ምላሾች</span>
             </div>
+            {satisfactionData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie data={satisfactionData} cx="50%" cy="50%" labelLine={true} label={({ percent }) => `${(percent * 100).toFixed(0)}%`} outerRadius={80} dataKey="value">
+                    {satisfactionData.map((entry, idx) => <Cell key={idx} fill={entry.color} stroke="#fff" strokeWidth={2} />)}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`${value} ሰዎች`, 'ብዛት']} />
+                  <Legend wrapperStyle={{ fontSize: '11px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[280px] flex items-center justify-center text-gray-400">ምንም ውሂብ የለም</div>
+            )}
+          </div>
 
-            {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Satisfaction Comparison */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <span>📊</span> የእርካታ ንጽጽር
-                </h2>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={combinedSatisfaction}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="very_satisfied" fill="#10b981" name="በጣም ረክተዋል" />
-                    <Bar dataKey="satisfied" fill="#34d399" name="ረክተዋል" />
-                    <Bar dataKey="neutral" fill="#fbbf24" name="ገለልተኛ" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Weekly Trend */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <span>📈</span> ሳምንታዊ አዝማሚያ
-                </h2>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={weeklyTrend}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" />
-                    <YAxis domain={[0, 5]} />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="external" stroke="#3b82f6" name="ውጭ ደንበኞች" strokeWidth={2} />
-                    <Line type="monotone" dataKey="internal" stroke="#8b5cf6" name="ውስጥ ሰራተኞች" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+          {/* Bar Chart */}
+          <div className="bg-white rounded-xl shadow-md p-4">
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="font-bold text-gray-800">📊 የውስጥ ሰራተኞች እርካታ በዲፓርትመንት</h2>
+              <span className="text-xs text-gray-400">ከ{internalStats?.total_feedback || 0} ምላሾች</span>
             </div>
-
-            {/* Recent Feedback Table */}
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-              <div className="bg-gradient-to-r from-gray-800 to-gray-700 px-6 py-4">
-                <h2 className="text-white font-bold flex items-center gap-2">
-                  <span>📝</span> የቅርብ ጊዜ ግብረመልሶች
-                </h2>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">መታወቂያ</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">ዓይነት</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">ስም/ዲፓርትመንት</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">እርካታ</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">ቀን</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {recentFeedback.map(fb => (
-                      <tr key={fb.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-3 text-sm text-gray-500">#{fb.id}</td>
-                        <td className="px-6 py-3">
-                          <span className={`px-2 py-1 rounded-full text-xs ${fb.type === 'ውጭ' ? 'bg-blue-100 text-blue-700' : 'bg-indigo-100 text-indigo-700'}`}>
-                            {fb.type}
-                          </span>
-                        </td>
-                        <td className="px-6 py-3 text-sm">{fb.name}</td>
-                        <td className="px-6 py-3">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold">{fb.rating}</span>
-                            <div className="text-yellow-400">{'⭐'.repeat(fb.rating)}</div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-3 text-sm text-gray-500">{fb.date}</td>
-                      </tr>
+            {departmentData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={departmentData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} tick={{ fontSize: 11 }} />
+                  <YAxis domain={[0, 5]} />
+                  <Tooltip formatter={(value) => [`${value} / 5`, 'አማካይ እርካታ']} />
+                  <Bar dataKey="rating" fill="#3b82f6" radius={[8,8,0,0]}>
+                    {departmentData.map((entry, idx) => (
+                      <Cell key={idx} fill={entry.rating >= 4 ? '#10b981' : entry.rating >= 3 ? '#fbbf24' : '#ef4444'} />
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </>
-        )}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[280px] flex items-center justify-center text-gray-400">ምንም ውሂብ የለም</div>
+            )}
+          </div>
+        </div>
 
-        {/* External Tab */}
-        {activeTab === 'external' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <p className="text-gray-500 text-sm">ጠቅላላ የውጭ ግብረመልስ</p>
-                <p className="text-3xl font-bold text-blue-600 mt-1">{externalStats?.total_feedback || 0}</p>
-              </div>
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <p className="text-gray-500 text-sm">አማካይ እርካታ</p>
-                <p className="text-3xl font-bold text-blue-600 mt-1">{externalStats?.average_satisfaction || 0} / 5</p>
-              </div>
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <p className="text-gray-500 text-sm">የእርካታ መጠን</p>
-                <p className="text-3xl font-bold text-blue-600 mt-1">
-                  {((((externalStats?.satisfaction_distribution?.very_satisfied || 0) + (externalStats?.satisfaction_distribution?.satisfied || 0)) / (externalStats?.total_feedback || 1)) * 100).toFixed(1)}%
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-lg font-bold text-gray-800 mb-4">🏢 በዘርፍ የተከፋፈለ እርካታ</h2>
-              <div className="space-y-4">
-                {externalStats?.sector_stats?.map((sector, i) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <div className="w-48 text-sm font-medium">{sector.sector}</div>
-                    <div className="flex-1">
+        {/* Sector Statistics Table (External) */}
+        <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3">
+            <h3 className="text-white font-bold text-sm">🏢 በዘርፍ የተከፋፈለ እርካታ (የውጭ ደንበኞች)</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr><th className="px-4 py-3 text-left">ዘርፍ</th><th className="px-4 py-3 text-left">አማካይ እርካታ</th><th className="px-4 py-3 text-left">ብዛት</th><th className="px-4 py-3 text-left">ደረጃ</th></tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {externalStats?.sector_stats?.map((s, i) => (
+                  <tr key={i} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium">{s.sector}</td>
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-full bg-gray-200 rounded-full h-3">
-                          <div className="bg-blue-500 h-3 rounded-full" style={{ width: `${(sector.avg_rating / 5) * 100}%` }} />
+                        <span className="font-bold">{s.avg_rating.toFixed(1)}</span>
+                        <div className="w-24 bg-gray-200 rounded-full h-1.5">
+                          <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${(s.avg_rating / 5) * 100}%` }} />
                         </div>
-                        <span className="text-sm font-bold w-12">{sector.avg_rating.toFixed(1)}</span>
                       </div>
-                    </div>
-                    <div className="text-sm text-gray-500 w-20">({sector.count})</div>
-                  </div>
+                    </td>
+                    <td className="px-4 py-3">{s.count}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded-full text-xs ${s.avg_rating >= 4 ? 'bg-green-100 text-green-700' : s.avg_rating >= 3 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                        {s.avg_rating >= 4 ? 'ከፍተኛ' : s.avg_rating >= 3 ? 'መካከለኛ' : 'ዝቅተኛ'}
+                      </span>
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            </div>
+                {(!externalStats?.sector_stats || externalStats.sector_stats.length === 0) && (
+                  <tr><td colSpan="4" className="text-center py-8 text-gray-400">ምንም ውሂብ የለም</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
+        </div>
 
-        {/* Internal Tab */}
-        {activeTab === 'internal' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <p className="text-gray-500 text-sm">ጠቅላላ የውስጥ ግብረመልስ</p>
-                <p className="text-3xl font-bold text-indigo-600 mt-1">{internalStats?.total_feedback || 0}</p>
-              </div>
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <p className="text-gray-500 text-sm">አማካይ እርካታ</p>
-                <p className="text-3xl font-bold text-indigo-600 mt-1">{internalStats?.average_satisfaction || 0} / 5</p>
-              </div>
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <p className="text-gray-500 text-sm">የእርካታ መጠን</p>
-                <p className="text-3xl font-bold text-indigo-600 mt-1">
-                  {((((internalStats?.satisfaction_distribution?.very_satisfied || 0) + (internalStats?.satisfaction_distribution?.satisfied || 0)) / (internalStats?.total_feedback || 1)) * 100).toFixed(1)}%
-                </p>
+        {/* QR Code & Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl shadow-md p-4 text-center">
+            <h3 className="font-bold text-gray-800 mb-2">📱 QR Code በመጠቀም ይሙሉ</h3>
+            <div className="flex justify-center mb-3">
+              <div className="bg-white p-3 rounded-xl shadow-md border-2 border-green-200">
+                <QRCodeSVG id="unified-qr-code" value={formUrl} size={qrSize} bgColor="#FFFFFF" fgColor="#166534" level="H" includeMargin />
               </div>
             </div>
+            <div className="flex gap-2 justify-center">
+              <button onClick={downloadQR} className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-green-700">📥 አውርድ</button>
+              <Link to="/feedback" className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-blue-700">📝 ቅጽ ሙላ</Link>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">ስልክዎን ቀንደው ይሙሉ</p>
+          </div>
+          <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-xl shadow-md p-4 text-center">
+            <span className="text-4xl mb-2 block">🏢</span>
+            <h3 className="font-bold text-gray-800 mb-1">የውስጥ ሰራተኞች</h3>
+            <p className="text-xs text-gray-600 mb-3">የውስጥ እርካታ መጠይቅ ለመሙላት</p>
+            <Link to="/internal-feedback" className="inline-block bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-indigo-700">ወደ ውስጥ ቅጽ ሂድ →</Link>
+          </div>
+          <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl shadow-md p-4 text-center">
+            <span className="text-4xl mb-2 block">👨‍💼</span>
+            <h3 className="font-bold text-gray-800 mb-1">አስተዳዳሪዎች</h3>
+            <p className="text-xs text-gray-600 mb-3">የውሂብ ትንተና እና ሪፖርት ለማየት</p>
+            <Link to="/login" className="inline-block bg-purple-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-purple-700">ወደ አስተዳደር ገፅ ሂድ →</Link>
+          </div>
+        </div>
 
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-lg font-bold text-gray-800 mb-4">🏢 በዲፓርትመንት እርካታ</h2>
-              <div className="space-y-4">
-                {internalStats?.department_stats?.map((dept, i) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <div className="w-32 text-sm font-medium">{dept.department}</div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <div className="w-full bg-gray-200 rounded-full h-3">
-                          <div className="bg-indigo-500 h-3 rounded-full" style={{ width: `${(dept.avg_rating / 5) * 100}%` }} />
+        {/* ✅ RECENT FEEDBACK TABLE (REAL DATA) */}
+        <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="bg-gradient-to-r from-gray-800 to-gray-700 px-6 py-4">
+            <h2 className="text-white font-bold flex items-center gap-2">
+              <span>📝</span> የቅርብ ጊዜ ግብረመልሶች
+            </h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left">መታወቂያ</th>
+                  <th className="px-6 py-3 text-left">ዓይነት</th>
+                  <th className="px-6 py-3 text-left">ስም/ዲፓርትመንት</th>
+                  <th className="px-6 py-3 text-left">እርካታ</th>
+                  <th className="px-6 py-3 text-left">ቀን</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {recentFeedback.length > 0 ? (
+                  recentFeedback.map((fb) => (
+                    <tr key={fb.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-3 text-gray-500">#{fb.id}</td>
+                      <td className="px-6 py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs ${fb.type === 'ውጭ' ? 'bg-blue-100 text-blue-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                          {fb.type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3 font-medium">{fb.name}</td>
+                      <td className="px-6 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold">{fb.rating}</span>
+                          <div className="text-yellow-400">{'⭐'.repeat(fb.rating)}</div>
                         </div>
-                        <span className="text-sm font-bold w-12">{dept.avg_rating.toFixed(1)}</span>
-                      </div>
-                    </div>
-                    <div className="text-sm text-gray-500 w-20">({dept.count})</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                      </td>
+                      <td className="px-6 py-3 text-gray-500">{fb.date}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-8 text-center text-gray-400">
+                      ምንም ግብረመልሶች የሉም
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
+        </div>
 
-        {/* Comparison Tab */}
-        {activeTab === 'comparison' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-lg font-bold text-blue-600 mb-4 flex items-center gap-2">
-                <span>🌍</span> የውጭ ደንበኞች እርካታ
-              </h2>
-              <div className="space-y-3">
-                {Object.entries(externalStats?.satisfaction_distribution || {}).map(([key, value]) => {
-                  const labels = { very_satisfied: 'በጣም ረክተዋል', satisfied: 'ረክተዋል', neutral: 'ገለልተኛ', dissatisfied: 'አልረካሁም', very_dissatisfied: 'በጣም አልረካሁም' }
-                  return (
-                    <div key={key} className="flex items-center gap-3">
-                      <div className="w-36 text-sm">{labels[key] || key}</div>
-                      <div className="flex-1 bg-gray-200 rounded-full h-4">
-                        <div className="bg-blue-500 h-4 rounded-full" style={{ width: `${(value / (externalStats?.total_feedback || 1)) * 100}%` }} />
-                      </div>
-                      <div className="text-sm font-bold w-16">{value}</div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-lg font-bold text-indigo-600 mb-4 flex items-center gap-2">
-                <span>🏢</span> የውስጥ ሰራተኞች እርካታ
-              </h2>
-              <div className="space-y-3">
-                {Object.entries(internalStats?.satisfaction_distribution || {}).map(([key, value]) => {
-                  const labels = { very_satisfied: 'በጣም ረክተዋል', satisfied: 'ረክተዋል', neutral: 'ገለልተኛ', dissatisfied: 'አልረካሁም', very_dissatisfied: 'በጣም አልረካሁም' }
-                  return (
-                    <div key={key} className="flex items-center gap-3">
-                      <div className="w-36 text-sm">{labels[key] || key}</div>
-                      <div className="flex-1 bg-gray-200 rounded-full h-4">
-                        <div className="bg-indigo-500 h-4 rounded-full" style={{ width: `${(value / (internalStats?.total_feedback || 1)) * 100}%` }} />
-                      </div>
-                      <div className="text-sm font-bold w-16">{value}</div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Footer */}
+        <div className="text-center mt-6 text-xs text-gray-400">
+          <p>መረጃው በየቀኑ ይዘመናል | የቅርብ ጊዜ ዝመና: {new Date().toLocaleDateString('am-ET')}</p>
+        </div>
       </main>
     </div>
   )

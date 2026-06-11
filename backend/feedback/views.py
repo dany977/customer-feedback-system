@@ -162,12 +162,32 @@ class ExportExcelView(APIView):
             return Response({'error': 'No data available'}, status=404)
         
         df = pd.DataFrame(feedbacks)
+
+        # ✅ Remove timezone from any datetime columns
+        for col in df.select_dtypes(include=['datetime64[ns, UTC]', 'datetime64[ns]']).columns:
+            df[col] = df[col].dt.tz_localize(None)
+        for col in df.select_dtypes(include=['datetime64[ns]']).columns:
+            df[col] = df[col].dt.strftime('%Y-%m-%d %H:%M:%S')
+
+        # ✅ Optional: rename columns to Amharic (adjust as needed)
+        column_mapping = {
+            'id': 'መታወቂያ',
+            'service_date': 'የአገልግሎት ቀን',
+            'full_name': 'ሙሉ ስም',
+            'stakeholder_type': 'የባለድርሻ አካል',
+            'sector': 'ዘርፍ',
+            'overall_satisfaction': 'አጠቃላይ እርካታ',
+            'created_at': 'የተላከበት ቀን',
+        }
+        existing_cols = [col for col in column_mapping.keys() if col in df.columns]
+        df = df[existing_cols]
+        df = df.rename(columns={k: v for k, v in column_mapping.items() if k in existing_cols})
+
         output = BytesIO()
-        
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, sheet_name='Feedback', index=False)
+            df.to_excel(writer, sheet_name='External Feedback', index=False)
         
         output.seek(0)
         response = HttpResponse(output, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename=feedback_report.xlsx'
+        response['Content-Disposition'] = 'attachment; filename=external_feedback.xlsx'
         return response
